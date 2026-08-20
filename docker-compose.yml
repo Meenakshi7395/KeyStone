@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: keystone-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-keystone}
+      POSTGRES_USER: ${POSTGRES_USER:-keystone}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-keystone}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-keystone} -d ${POSTGRES_DB:-keystone}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - keystone-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: keystone-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-keystone}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-keystone}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-keystone}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+    ports:
+      - "8080:8080"
+    networks:
+      - keystone-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api}
+    container_name: keystone-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - keystone-net
+
+networks:
+  keystone-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
