@@ -110,4 +110,30 @@ public class WorkOrderController {
 
         workOrderService.addPart(id, request);
     }
+
+// =========================================
+// LOG TIME AGAINST WORK ORDER
+// =========================================
+
+    @PostMapping("/{id}/time")
+    public WorkOrderTimeResponseDTO logTime(
+            @PathVariable Integer id,
+            @Valid @RequestBody LogWorkOrderTimeRequestDTO request) {
+
+        return workOrderService.logTime(id, request);
+    }
+
+
+// =========================================
+// GET TIME LOGS FOR WORK ORDER
+// =========================================
+
+    @GetMapping("/{id}/time")
+    public List<WorkOrderTimeResponseDTO> getTimeLogs(
+            @PathVariable Integer id) {
+
+        return workOrderService.getTimeLogs(id);
+    }
+
+
 }

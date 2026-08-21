@@ -1,16 +1,31 @@
 package com.KeyStone.DeliveryService.Service;
+
+import com.KeyStone.DeliveryService.DTO.Part.AddPartToWorkOrderRequestDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.AssignTechnicianRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.LogWorkOrderTimeRequestDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.UpdateWorkOrderStatusRequestDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderHistoryResponseDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderRequestDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderResponseDTO;
-import com.KeyStone.DeliveryService.DTO.Part.AddPartToWorkOrderRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderTimeResponseDTO;
 
-import com.KeyStone.DeliveryService.Entity.*;
+import com.KeyStone.DeliveryService.Entity.Customer;
+import com.KeyStone.DeliveryService.Entity.Part;
+import com.KeyStone.DeliveryService.Entity.Site;
+import com.KeyStone.DeliveryService.Entity.User;
+import com.KeyStone.DeliveryService.Entity.WorkOrder;
+import com.KeyStone.DeliveryService.Entity.WorkOrderHistory;
+import com.KeyStone.DeliveryService.Entity.WorkOrderTime;
 
 import com.KeyStone.DeliveryService.Enum.WorkOrderStatus;
 
-import com.KeyStone.DeliveryService.Repository.*;
+import com.KeyStone.DeliveryService.Repository.CustomerRepository;
+import com.KeyStone.DeliveryService.Repository.PartRepository;
+import com.KeyStone.DeliveryService.Repository.SiteRepository;
+import com.KeyStone.DeliveryService.Repository.UserRepository;
+import com.KeyStone.DeliveryService.Repository.WorkOrderHistoryRepository;
+import com.KeyStone.DeliveryService.Repository.WorkOrderRepository;
+import com.KeyStone.DeliveryService.Repository.WorkOrderTimeRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +44,8 @@ public class WorkOrderService {
     private final UserRepository userRepository;
     private final WorkOrderHistoryRepository workOrderHistoryRepository;
     private final PartRepository partRepository;
-    private final WorkOrderPartRepository workOrderPartRepository;
+    private final WorkOrderTimeRepository workOrderTimeRepository;
+
 
     public WorkOrderService(
             WorkOrderRepository workOrderRepository,
@@ -38,17 +54,15 @@ public class WorkOrderService {
             UserRepository userRepository,
             WorkOrderHistoryRepository workOrderHistoryRepository,
             PartRepository partRepository,
-            WorkOrderPartRepository workOrderPartRepository
-    ) {
+            WorkOrderTimeRepository workOrderTimeRepository) {
 
         this.workOrderRepository = workOrderRepository;
         this.customerRepository = customerRepository;
         this.siteRepository = siteRepository;
         this.userRepository = userRepository;
-        this.workOrderHistoryRepository =
-                workOrderHistoryRepository;
+        this.workOrderHistoryRepository = workOrderHistoryRepository;
         this.partRepository = partRepository;
-        this.workOrderPartRepository = workOrderPartRepository;
+        this.workOrderTimeRepository = workOrderTimeRepository;
     }
 
 
@@ -78,9 +92,7 @@ public class WorkOrderService {
                         )
                 );
 
-        // Verify that the site belongs to the customer
-        if (!site.getCustomer()
-                .getId()
+        if (!site.getCustomer().getId()
                 .equals(customer.getId())) {
 
             throw new IllegalArgumentException(
@@ -98,12 +110,11 @@ public class WorkOrderService {
         WorkOrder savedWorkOrder =
                 workOrderRepository.save(workOrder);
 
-        // Save history
         saveHistory(
                 savedWorkOrder,
-                "CREATED",
+                "WORK_ORDER_CREATED",
                 null,
-                "Work order created"
+                savedWorkOrder.getTitle()
         );
 
         return toResponse(savedWorkOrder);
@@ -133,13 +144,11 @@ public class WorkOrderService {
             Integer customerId,
             Pageable pageable) {
 
-        // Verify customer exists
         customerRepository
                 .findById(customerId)
                 .orElseThrow(() ->
                         new NoSuchElementException(
-                                "Customer not found: "
-                                        + customerId
+                                "Customer not found: " + customerId
                         )
                 );
 
@@ -157,22 +166,20 @@ public class WorkOrderService {
     public WorkOrderResponseDTO getById(
             Integer id) {
 
-        WorkOrder workOrder =
-                workOrderRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Work order not found: "
-                                                + id
-                                )
-                        );
+        WorkOrder workOrder = workOrderRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: " + id
+                        )
+                );
 
         return toResponse(workOrder);
     }
 
 
     // =========================================
-    // ASSIGN TECHNICIAN TO WORK ORDER
+    // ASSIGN TECHNICIAN
     // =========================================
 
     @Transactional
@@ -180,27 +187,24 @@ public class WorkOrderService {
             Integer workOrderId,
             AssignTechnicianRequestDTO request) {
 
-        WorkOrder workOrder =
-                workOrderRepository
-                        .findById(workOrderId)
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Work order not found: "
-                                                + workOrderId
-                                )
-                        );
+        WorkOrder workOrder = workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
 
-        User technician =
-                userRepository
-                        .findById(request.technicianId())
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Technician not found: "
-                                                + request.technicianId()
-                                )
-                        );
+        User technician = userRepository
+                .findById(request.technicianId())
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Technician not found: "
+                                        + request.technicianId()
+                        )
+                );
 
-        // Verify TECHNICIAN role
         if (!"TECHNICIAN".equals(
                 technician.getRole().name())) {
 
@@ -214,15 +218,11 @@ public class WorkOrderService {
                         ? workOrder.getTechnician().getName()
                         : null;
 
-        // Assign technician
         workOrder.setTechnician(technician);
 
-        // Automatically change OPEN to ASSIGNED
+        // OPEN automatically becomes ASSIGNED
         if (workOrder.getStatus()
                 == WorkOrderStatus.OPEN) {
-
-            WorkOrderStatus oldStatus =
-                    workOrder.getStatus();
 
             workOrder.setStatus(
                     WorkOrderStatus.ASSIGNED
@@ -231,7 +231,7 @@ public class WorkOrderService {
             saveHistory(
                     workOrder,
                     "STATUS_CHANGED",
-                    oldStatus.name(),
+                    WorkOrderStatus.OPEN.name(),
                     WorkOrderStatus.ASSIGNED.name()
             );
         }
@@ -239,7 +239,6 @@ public class WorkOrderService {
         WorkOrder savedWorkOrder =
                 workOrderRepository.save(workOrder);
 
-        // Save technician assignment history
         saveHistory(
                 savedWorkOrder,
                 "TECHNICIAN_ASSIGNED",
@@ -260,15 +259,14 @@ public class WorkOrderService {
             Integer workOrderId,
             UpdateWorkOrderStatusRequestDTO request) {
 
-        WorkOrder workOrder =
-                workOrderRepository
-                        .findById(workOrderId)
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Work order not found: "
-                                                + workOrderId
-                                )
-                        );
+        WorkOrder workOrder = workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
 
         WorkOrderStatus oldStatus =
                 workOrder.getStatus();
@@ -276,12 +274,18 @@ public class WorkOrderService {
         WorkOrderStatus newStatus =
                 request.status();
 
+        // IMPORTANT:
+        // Validate BEFORE changing the status.
+        validateStatusTransition(
+                oldStatus,
+                newStatus
+        );
+
         workOrder.setStatus(newStatus);
 
         WorkOrder savedWorkOrder =
                 workOrderRepository.save(workOrder);
 
-        // Save history
         saveHistory(
                 savedWorkOrder,
                 "STATUS_CHANGED",
@@ -295,52 +299,131 @@ public class WorkOrderService {
     }
 
 
-// =========================================
-// ADD PART TO WORK ORDER
-// =========================================
+    // =========================================
+    // VALIDATE STATUS TRANSITION
+    // =========================================
+
+    private void validateStatusTransition(
+            WorkOrderStatus currentStatus,
+            WorkOrderStatus newStatus) {
+
+        if (currentStatus == null) {
+            throw new IllegalStateException(
+                    "Current work order status is missing"
+            );
+        }
+
+        if (newStatus == null) {
+            throw new IllegalStateException(
+                    "New work order status is required"
+            );
+        }
+
+        boolean isValid;
+
+        switch (currentStatus) {
+
+            case OPEN:
+                isValid =
+                        newStatus
+                                == WorkOrderStatus.ASSIGNED;
+                break;
+
+            case ASSIGNED:
+                isValid =
+                        newStatus
+                                == WorkOrderStatus.IN_PROGRESS;
+                break;
+
+            case IN_PROGRESS:
+                isValid =
+                        newStatus
+                                == WorkOrderStatus.COMPLETED;
+                break;
+
+            case COMPLETED:
+                isValid = false;
+                break;
+
+            default:
+                isValid = false;
+                break;
+        }
+
+        if (!isValid) {
+            throw new IllegalStateException(
+                    "Illegal status transition from "
+                            + currentStatus
+                            + " to "
+                            + newStatus
+            );
+        }
+    }
+
+
+    // =========================================
+    // GET WORK ORDER HISTORY
+    // =========================================
+
+    @Transactional(readOnly = true)
+    public List<WorkOrderHistoryResponseDTO> getHistory(
+            Integer workOrderId) {
+
+        workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
+
+        return workOrderHistoryRepository
+                .findByWorkOrderIdOrderByCreatedAtDesc(
+                        workOrderId
+                )
+                .stream()
+                .map(this::toHistoryResponse)
+                .toList();
+    }
+
+
+    // =========================================
+    // ADD PART TO WORK ORDER
+    // =========================================
 
     @Transactional
     public void addPart(
             Integer workOrderId,
             AddPartToWorkOrderRequestDTO request) {
 
-        WorkOrder workOrder =
-                workOrderRepository
-                        .findById(workOrderId)
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Work order not found: "
-                                                + workOrderId
-                                )
-                        );
+        WorkOrder workOrder = workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
 
-        Part part =
-                partRepository
-                        .findById(request.partId())
-                        .orElseThrow(() ->
-                                new NoSuchElementException(
-                                        "Part not found: "
-                                                + request.partId()
-                                )
-                        );
-
-        if (request.quantity() == null
-                || request.quantity() <= 0) {
-
-            throw new IllegalArgumentException(
-                    "Quantity must be greater than 0"
-            );
-        }
+        Part part = partRepository
+                .findById(request.partId())
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Part not found: "
+                                        + request.partId()
+                        )
+                );
 
         if (part.getStockQuantity()
                 < request.quantity()) {
 
             throw new IllegalArgumentException(
-                    "Insufficient stock"
+                    "Insufficient stock for part: "
+                            + part.getName()
             );
         }
 
-        // Decrease stock
         part.setStockQuantity(
                 part.getStockQuantity()
                         - request.quantity()
@@ -348,29 +431,84 @@ public class WorkOrderService {
 
         partRepository.save(part);
 
-        // Save part usage
-        WorkOrderPart workOrderPart =
-                new WorkOrderPart();
-
-        workOrderPart.setWorkOrder(workOrder);
-        workOrderPart.setPart(part);
-        workOrderPart.setQuantity(
-                request.quantity()
-        );
-
-        workOrderPartRepository.save(
-                workOrderPart
-        );
-
-        // Save history
         saveHistory(
                 workOrder,
                 "PART_USED",
                 part.getName(),
-                "Quantity: "
-                        + request.quantity()
+                "Quantity: " + request.quantity()
         );
     }
+
+
+    // =========================================
+    // LOG TIME AGAINST WORK ORDER
+    // =========================================
+
+    @Transactional
+    public WorkOrderTimeResponseDTO logTime(
+            Integer workOrderId,
+            LogWorkOrderTimeRequestDTO request) {
+
+        WorkOrder workOrder = workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
+
+        WorkOrderTime workOrderTime =
+                new WorkOrderTime();
+
+        workOrderTime.setWorkOrder(workOrder);
+        workOrderTime.setHours(request.hours());
+        workOrderTime.setDescription(
+                request.description()
+        );
+
+        WorkOrderTime savedTime =
+                workOrderTimeRepository.save(
+                        workOrderTime
+                );
+
+        saveHistory(
+                workOrder,
+                "TIME_LOGGED",
+                null,
+                "Hours: " + request.hours()
+        );
+
+        return toTimeResponse(savedTime);
+    }
+
+
+    // =========================================
+    // GET TIME LOGS FOR WORK ORDER
+    // =========================================
+
+    @Transactional(readOnly = true)
+    public List<WorkOrderTimeResponseDTO> getTimeLogs(
+            Integer workOrderId) {
+
+        workOrderRepository
+                .findById(workOrderId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Work order not found: "
+                                        + workOrderId
+                        )
+                );
+
+        return workOrderTimeRepository
+                .findByWorkOrderIdOrderByCreatedAtDesc(
+                        workOrderId
+                )
+                .stream()
+                .map(this::toTimeResponse)
+                .toList();
+    }
+
 
     // =========================================
     // SAVE WORK ORDER HISTORY
@@ -395,43 +533,41 @@ public class WorkOrderService {
 
 
     // =========================================
-    // GET WORK ORDER HISTORY
+    // HISTORY ENTITY → RESPONSE DTO
     // =========================================
 
-    @Transactional(readOnly = true)
-    public List<WorkOrderHistoryResponseDTO> getHistory(
-            Integer workOrderId) {
+    private WorkOrderHistoryResponseDTO toHistoryResponse(
+            WorkOrderHistory history) {
 
-        // Verify work order exists
-        workOrderRepository
-                .findById(workOrderId)
-                .orElseThrow(() ->
-                        new NoSuchElementException(
-                                "Work order not found: "
-                                        + workOrderId
-                        )
-                );
-
-        return workOrderHistoryRepository
-                .findByWorkOrderIdOrderByCreatedAtDesc(
-                        workOrderId
-                )
-                .stream()
-                .map(history ->
-                        new WorkOrderHistoryResponseDTO(
-                                history.getId(),
-                                history.getAction(),
-                                history.getOldValue(),
-                                history.getNewValue(),
-                                history.getCreatedAt()
-                        )
-                )
-                .toList();
+        return new WorkOrderHistoryResponseDTO(
+                history.getId(),
+                history.getAction(),
+                history.getOldValue(),
+                history.getNewValue(),
+                history.getCreatedAt()
+        );
     }
 
 
     // =========================================
-    // ENTITY → RESPONSE DTO
+    // TIME ENTITY → RESPONSE DTO
+    // =========================================
+
+    private WorkOrderTimeResponseDTO toTimeResponse(
+            WorkOrderTime workOrderTime) {
+
+        return new WorkOrderTimeResponseDTO(
+                workOrderTime.getId(),
+                workOrderTime.getWorkOrder().getId(),
+                workOrderTime.getHours(),
+                workOrderTime.getDescription(),
+                workOrderTime.getCreatedAt()
+        );
+    }
+
+
+    // =========================================
+    // WORK ORDER ENTITY → RESPONSE DTO
     // =========================================
 
     private WorkOrderResponseDTO toResponse(
@@ -442,33 +578,21 @@ public class WorkOrderService {
 
         return new WorkOrderResponseDTO(
                 workOrder.getId(),
-
                 workOrder.getTitle(),
-
                 workOrder.getDescription(),
-
                 workOrder.getCustomer().getId(),
-
                 workOrder.getCustomer().getName(),
-
                 workOrder.getSite().getId(),
-
                 workOrder.getSite().getName(),
-
                 technician != null
                         ? technician.getId()
                         : null,
-
                 technician != null
                         ? technician.getName()
                         : null,
-
                 workOrder.getStatus(),
-
                 workOrder.getCreatedAt(),
-
                 workOrder.getUpdatedAt()
         );
     }
 }
-

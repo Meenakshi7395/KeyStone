@@ -1,6 +1,7 @@
 package com.KeyStone.DeliveryService.Repository;
 
 import com.KeyStone.DeliveryService.Entity.WorkOrder;
+import com.KeyStone.DeliveryService.Enum.WorkOrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,7 @@ public interface WorkOrderRepository
             Integer technicianId,
             Pageable pageable
     );
+
+    // Report summary
+    long countByStatus(WorkOrderStatus status);
 }
