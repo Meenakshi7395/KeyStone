@@ -19,7 +19,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+//@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JWTAuthenticationFilter jwtAuthenticationFilter;
@@ -40,6 +40,7 @@ public class SecurityConfig {
             HttpSecurity http) throws Exception {
 
         http
+
                 .csrf(csrf -> csrf.disable())
 
                 .cors(cors ->
@@ -63,18 +64,31 @@ public class SecurityConfig {
                                 "/api/users/login"
                         ).permitAll()
 
-                        // Swagger
+                        // Swagger APIs
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-//                        // TEMPORARY TEST - allow GET customers
-//                        .requestMatchers(
-//                                HttpMethod.GET,
-//                                "/api/customers"
-//                        ).permitAll()
+                        // TEMPORARY: Allow customer work order GET API
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/work-orders/customer/**"
+                        ).permitAll()
+
+                        // TEMPORARY: Allow all Work Order GET APIs
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/work-orders",
+                                "/api/work-orders/**"
+                        ).permitAll()
+
+                        // TEMPORARY: Allow all Work Order PUT APIs
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/work-orders/**"
+                        ).permitAll()
 
                         // Everything else requires JWT
                         .anyRequest().authenticated()
@@ -96,6 +110,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(
                 List.of(
+                        "http://localhost:3000",
                         "http://localhost:5173",
                         "http://localhost:5174"
                 )

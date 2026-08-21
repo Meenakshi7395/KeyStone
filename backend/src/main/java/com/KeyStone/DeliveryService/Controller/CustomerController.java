@@ -61,22 +61,22 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.list(search, pageable));
     }
 
-    @GetMapping("/test-auth")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
-    public ResponseEntity<?> testAuth(
-            org.springframework.security.core.Authentication authentication) {
-
-        com.KeyStone.DeliveryService.Entity.User user =
-                (com.KeyStone.DeliveryService.Entity.User)
-                        authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                java.util.Map.of(
-                        "authenticated", authentication.isAuthenticated(),
-                        "email", user.getEmail(),
-                        "role", user.getRole().name(),
-                        "authorities", authentication.getAuthorities()
-                )
-        );
-    }
+//    @GetMapping("/test-auth")
+//    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+//    public ResponseEntity<?> testAuth(
+//            org.springframework.security.core.Authentication authentication) {
+//
+//        com.KeyStone.DeliveryService.Entity.User user =
+//                (com.KeyStone.DeliveryService.Entity.User)
+//                        authentication.getPrincipal();
+//
+//        return ResponseEntity.ok(
+//                java.util.Map.of(
+//                        "authenticated", authentication.isAuthenticated(),
+//                        "email", user.getEmail(),
+//                        "role", user.getRole().name(),
+//                        "authorities", authentication.getAuthorities()
+//                )
+//        );
+//    }
 }
