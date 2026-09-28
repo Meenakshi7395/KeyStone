@@ -47,7 +47,7 @@ p {
   color: var(--ink-secondary);
 }
 
-/* ---------- Auth screens ---------- */
+
 
 .auth-screen {
   min-height: 100vh;
@@ -91,7 +91,7 @@ p {
   text-decoration: none;
 }
 
-/* ---------- Form primitives ---------- */
+
 
 .field {
   display: flex;
@@ -176,7 +176,7 @@ select:focus {
   width: 100%;
 }
 
-/* ---------- Navbar ---------- */
+
 
 .navbar {
   display: flex;
@@ -245,7 +245,6 @@ select:focus {
   font-size: 14px;
 }
 
-/* ---------- Role badges ---------- */
 
 .role-badge {
   display: inline-block;
@@ -276,7 +275,6 @@ select:focus {
   color: var(--accent-orange);
 }
 
-/* ---------- Page layout ---------- */
 
 .page {
   max-width: 1080px;
@@ -374,7 +372,7 @@ select:focus {
   flex: 1 1 160px;
 }
 
-/* ---------- Data table ---------- */
+
 
 .data-table {
   overflow-x: auto;
@@ -428,7 +426,6 @@ select:focus {
   color: var(--ink-secondary);
 }
 
-/* ---------- Empty state ---------- */
 
 .empty-state {
   text-align: center;
@@ -445,8 +442,6 @@ select:focus {
   margin: 0 auto;
   font-size: 14px;
 }
-
-/* ---------- Profile ---------- */
 
 .profile-grid {
   display: grid;
