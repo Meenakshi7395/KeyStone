@@ -1,5 +1,6 @@
 package com.KeyStone.DeliveryService.DTO.WorkOrder;
 
+import com.KeyStone.DeliveryService.Enum.WorkOrderPriority;
 import com.KeyStone.DeliveryService.Enum.WorkOrderStatus;
 
 import java.time.Instant;
@@ -24,7 +25,11 @@ public record WorkOrderResponseDTO(
 
         String technicianName,
 
+        WorkOrderPriority priority,
+
         WorkOrderStatus status,
+
+        Instant slaDueDate,
 
         Instant createdAt,
 

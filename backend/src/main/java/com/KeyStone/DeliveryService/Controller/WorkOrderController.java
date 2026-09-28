@@ -1,7 +1,10 @@
 package com.KeyStone.DeliveryService.Controller;
 
 import com.KeyStone.DeliveryService.DTO.Part.AddPartToWorkOrderRequestDTO;
+import com
+        .KeyStone.DeliveryService.DTO.Part.PartResponseDTO;
 import com.KeyStone.DeliveryService.DTO.WorkOrder.*;
+import com.KeyStone.DeliveryService.Entity.User;
 import com.KeyStone.DeliveryService.Service.WorkOrderService;
 
 import jakarta.validation.Valid;
@@ -10,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,18 +30,28 @@ public class WorkOrderController {
         this.workOrderService = workOrderService;
     }
 
+    // =========================================
     // CREATE WORK ORDER
+    // =========================================
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','CUSTOMER')")
     public ResponseEntity<WorkOrderResponseDTO> create(
+            Authentication authentication,
             @Valid @RequestBody WorkOrderRequestDTO request) {
 
+        User caller = (User) authentication.getPrincipal();
+
         return ResponseEntity.ok(
-                workOrderService.create(request)
+                workOrderService.create(caller, request)
         );
     }
 
+
+    // =========================================
     // GET ALL WORK ORDERS
+    // =========================================
+
     @GetMapping
     @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
     public ResponseEntity<Page<WorkOrderResponseDTO>> list(
@@ -48,33 +62,78 @@ public class WorkOrderController {
         );
     }
 
+
+    // =========================================
+    // GET WORK ORDERS BY TECHNICIAN
+    // IMPORTANT: This must appear before /{id}
+    // =========================================
+
+    @GetMapping("/technician/{technicianId}")
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<Page<WorkOrderResponseDTO>> getByTechnician(
+            Authentication authentication,
+            @PathVariable Integer technicianId,
+            Pageable pageable) {
+
+        User caller = (User) authentication.getPrincipal();
+
+        return ResponseEntity.ok(
+                workOrderService.getByTechnician(
+                        caller,
+                        technicianId,
+                        pageable
+                )
+        );
+    }
+
+
+    // =========================================
     // GET WORK ORDERS BY CUSTOMER
+    // =========================================
+
     @GetMapping("/customer/{customerId}")
+    @PreAuthorize("hasAnyRole('CUSTOMER','DISPATCHER','MANAGER')")
     public ResponseEntity<Page<WorkOrderResponseDTO>> getByCustomer(
+            Authentication authentication,
             @PathVariable Integer customerId,
             Pageable pageable) {
 
+        User caller = (User) authentication.getPrincipal();
+
         return ResponseEntity.ok(
                 workOrderService.getByCustomer(
+                        caller,
                         customerId,
                         pageable
                 )
         );
     }
 
+
+    // =========================================
     // GET WORK ORDER BY ID
+    // =========================================
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN','CUSTOMER')")
     public ResponseEntity<WorkOrderResponseDTO> getById(
+            Authentication authentication,
             @PathVariable Integer id) {
 
+        User caller = (User) authentication.getPrincipal();
+
         return ResponseEntity.ok(
-                workOrderService.getById(id)
+                workOrderService.getById(caller, id)
         );
     }
 
-    // ASSIGN TECHNICIAN TO WORK ORDER
+
+    // =========================================
+    // ASSIGN TECHNICIAN
+    // =========================================
+
     @PutMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
     public ResponseEntity<WorkOrderResponseDTO> assignTechnician(
             @PathVariable Integer id,
             @Valid @RequestBody AssignTechnicianRequestDTO request) {
@@ -84,18 +143,32 @@ public class WorkOrderController {
         );
     }
 
-    // UPDATE WORK ORDER STATUS
+
+    // =========================================
+    // UPDATE STATUS
+    // =========================================
+
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
     public ResponseEntity<WorkOrderResponseDTO> updateStatus(
+            Authentication authentication,
             @PathVariable Integer id,
             @Valid @RequestBody UpdateWorkOrderStatusRequestDTO request) {
 
+        User caller = (User) authentication.getPrincipal();
+
         return ResponseEntity.ok(
-                workOrderService.updateStatus(id, request)
+                workOrderService.updateStatus(caller, id, request)
         );
     }
 
+
+    // =========================================
+    // GET WORK ORDER HISTORY
+    // =========================================
+
     @GetMapping("/{id}/history")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
     public ResponseEntity<List<WorkOrderHistoryResponseDTO>> getHistory(
             @PathVariable Integer id) {
 
@@ -103,37 +176,66 @@ public class WorkOrderController {
                 workOrderService.getHistory(id)
         );
     }
+
+
+    // =========================================
+    // ADD / USE PART
+    // =========================================
+
     @PostMapping("/{id}/parts")
-    public void addPart(
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<Void> addPart(
             @PathVariable Integer id,
             @Valid @RequestBody AddPartToWorkOrderRequestDTO request) {
 
         workOrderService.addPart(id, request);
+
+        return ResponseEntity.ok().build();
     }
 
-// =========================================
-// LOG TIME AGAINST WORK ORDER
-// =========================================
+
+    // =========================================
+    // GET PARTS USED IN WORK ORDER
+    // =========================================
+
+    @GetMapping("/{id}/parts")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
+    public ResponseEntity<List<PartResponseDTO>> getParts(
+            @PathVariable Integer id) {
+
+        return ResponseEntity.ok(
+                workOrderService.getParts(id)
+        );
+    }
+
+
+    // =========================================
+    // LOG TIME
+    // =========================================
 
     @PostMapping("/{id}/time")
-    public WorkOrderTimeResponseDTO logTime(
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<WorkOrderTimeResponseDTO> logTime(
             @PathVariable Integer id,
             @Valid @RequestBody LogWorkOrderTimeRequestDTO request) {
 
-        return workOrderService.logTime(id, request);
+        return ResponseEntity.ok(
+                workOrderService.logTime(id, request)
+        );
     }
 
 
-// =========================================
-// GET TIME LOGS FOR WORK ORDER
-// =========================================
+    // =========================================
+    // GET TIME LOGS
+    // =========================================
 
     @GetMapping("/{id}/time")
-    public List<WorkOrderTimeResponseDTO> getTimeLogs(
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
+    public ResponseEntity<List<WorkOrderTimeResponseDTO>> getTimeLogs(
             @PathVariable Integer id) {
 
-        return workOrderService.getTimeLogs(id);
+        return ResponseEntity.ok(
+                workOrderService.getTimeLogs(id)
+        );
     }
-
-
 }

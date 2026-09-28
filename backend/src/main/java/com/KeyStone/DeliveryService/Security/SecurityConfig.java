@@ -2,7 +2,6 @@ package com.KeyStone.DeliveryService.Security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,7 +18,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-//@EnableMethodSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JWTAuthenticationFilter jwtAuthenticationFilter;
@@ -57,11 +56,13 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public authentication APIs
+                        // Public authentication APIs only — login and
+                        // self-registration. Everything else requires a
+                        // valid JWT; role checks are then enforced by
+                        // @PreAuthorize on individual controller methods
+                        // (see @EnableMethodSecurity above).
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/users",
-                                "/api/users/login"
+                                "/api/auth/**"
                         ).permitAll()
 
                         // Swagger APIs
@@ -71,26 +72,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // TEMPORARY: Allow customer work order GET API
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/work-orders/customer/**"
-                        ).permitAll()
-
-                        // TEMPORARY: Allow all Work Order GET APIs
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/work-orders",
-                                "/api/work-orders/**"
-                        ).permitAll()
-
-                        // TEMPORARY: Allow all Work Order PUT APIs
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/work-orders/**"
-                        ).permitAll()
-
-                        // Everything else requires JWT
+                        // Everything else requires JWT + passes through
+                        // method security for role/ownership enforcement.
                         .anyRequest().authenticated()
                 )
 

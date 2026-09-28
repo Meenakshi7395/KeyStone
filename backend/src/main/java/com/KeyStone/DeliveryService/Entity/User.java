@@ -31,6 +31,14 @@ public class User {
     @Column(nullable = false, length = 32)
     private Role role;
 
+    // Only meaningful for role == CUSTOMER: links a customer-portal login
+    // to the organisation (Customer) it may act on behalf of. Set once via
+    // POST /api/auth/link-customer (self-service) or by a manager editing
+    // the user record — never trust a client-supplied customerId elsewhere.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

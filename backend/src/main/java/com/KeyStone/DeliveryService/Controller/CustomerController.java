@@ -47,14 +47,18 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.update(id, request));
     }
 
+    // Also reachable by CUSTOMER: a not-yet-linked customer login needs to
+    // search the organisation directory once to find and self-link to its
+    // own company (see AuthController#linkCustomer). This is read-only
+    // company-directory data (name/contact email), not work-order detail.
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','CUSTOMER')")
     public ResponseEntity<CustomerResponseDTO> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(customerService.getById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','CUSTOMER')")
     public ResponseEntity<Page<CustomerResponseDTO>> list(
             @RequestParam(required = false) String search,
             Pageable pageable) {

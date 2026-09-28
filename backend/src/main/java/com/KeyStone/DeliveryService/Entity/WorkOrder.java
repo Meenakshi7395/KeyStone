@@ -1,5 +1,6 @@
 package com.KeyStone.DeliveryService.Entity;
 
+import com.KeyStone.DeliveryService.Enum.WorkOrderPriority;
 import com.KeyStone.DeliveryService.Enum.WorkOrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -39,9 +40,18 @@ public class WorkOrder {
     @JoinColumn(name = "technician_id")
     private User technician;
 
+    // Priority of the work order
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private WorkOrderPriority priority;
+
+    // Current status of the work order
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private WorkOrderStatus status;
+
+    // SLA deadline for completing the work order
+    private Instant slaDueDate;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -50,11 +60,16 @@ public class WorkOrder {
 
     @PrePersist
     public void prePersist() {
+
         createdAt = Instant.now();
         updatedAt = Instant.now();
 
         if (status == null) {
             status = WorkOrderStatus.OPEN;
+        }
+
+        if (priority == null) {
+            priority = WorkOrderPriority.MEDIUM;
         }
     }
 
