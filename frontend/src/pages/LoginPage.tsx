@@ -3,6 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { dashboardPathFor } from "./dashboards/DashboardRouter";
+import AuthShowcase from "../components/AuthShowcase";
+import { IconLock, KeystoneLogo } from "../components/Icons";
 
 export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth();
@@ -34,44 +36,62 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-screen">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1 className="auth-card__title">KEYSTONE</h1>
-        <p className="auth-card__subtitle">Sign in to your account</p>
+    <div className="auth-split">
+      <AuthShowcase />
 
-        <label className="field">
-          <span>Email</span>
-          <input
-            type="email"
-            required
-            autoFocus
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
-            placeholder="you@keystone.com"
-          />
-        </label>
+      <div className="auth-split__form">
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <div className="auth-mobile-brand">
+            <KeystoneLogo size={30} /> KEYSTONE
+          </div>
+          <span className="auth-eyebrow">Operator sign-in</span>
+          <h1 className="auth-card__title">Welcome back</h1>
+          <p className="auth-card__subtitle">
+            Sign in to your KEYSTONE workspace. You'll land on the dashboard for your role.
+          </p>
 
-        <label className="field">
-          <span>Password</span>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
-        </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              required
+              autoFocus
+              autoComplete="email"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              placeholder="you@meridian.com"
+            />
+          </label>
 
-        {error && <div className="form-error">{error}</div>}
+          <label className="field">
+            <span>Password</span>
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </label>
 
-        <button className="btn btn--primary btn--block" type="submit" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
+          {error && <div className="form-error">{error}</div>}
 
-        <p className="auth-card__footer">
-          New here? <Link to="/register">Create an account</Link>
-        </p>
-      </form>
+          <button className="btn btn--primary btn--block" type="submit" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in →"}
+          </button>
+
+          <div className="auth-divider">or</div>
+
+          <p className="auth-card__footer">
+            New to KEYSTONE? <Link to="/register">Create an account</Link>
+          </p>
+
+          <div className="auth-secure">
+            <IconLock width={13} height={13} /> Secured with signed JWT · role-based access
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

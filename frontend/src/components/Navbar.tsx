@@ -1,22 +1,27 @@
-// import { NavLink, useNavigate } from "react-router-dom";
-// import { useAuth } from "../context/AuthContext";
-// import RoleBadge from "./RoleBadge";
-
-// export default function Navbar(){
-//  const {user,logout}=useAuth(); const navigate=useNavigate(); if(!user)return null;
-//  const operational=user.role==="DISPATCHER"||user.role==="MANAGER";
-//  return <header className="navbar"><div className="navbar__brand"><span className="navbar__logo">KEYSTONE</span><span className="navbar__subtitle">Field Service</span></div>
-//  <nav className="navbar__links"><NavLink to="/dashboard" className={({isActive})=>isActive?"navlink navlink--active":"navlink"}>Dashboard</NavLink>
-//  {operational&&<><NavLink to="/customers" className={({isActive})=>isActive?"navlink navlink--active":"navlink"}>Customers</NavLink><NavLink to="/sites" className={({isActive})=>isActive?"navlink navlink--active":"navlink"}>Sites</NavLink><NavLink to="/work-orders" className={({isActive})=>isActive?"navlink navlink--active":"navlink"}>Work Orders</NavLink></>}
-//  {user.role==="MANAGER"&&<NavLink to="/users" className={({isActive})=>isActive?"navlink navlink--active":"navlink"}>Users</NavLink>}</nav>
-//  <div className="navbar__user"><div className="navbar__user-info"><span className="navbar__user-name">{user.name}</span><RoleBadge role={user.role}/></div><button className="btn btn--ghost" onClick={()=>{logout();navigate("/login",{replace:true});}}>Log out</button></div></header>
-// }
-
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import RoleBadge from "./RoleBadge";
+import {
+  IconBuilding,
+  IconClipboard,
+  IconDashboard,
+  IconPin,
+  IconUsers,
+  KeystoneLogo,
+} from "./Icons";
+
+function initials(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "?"
+  );
+}
 
 export default function Navbar() {
   const {
@@ -90,17 +95,13 @@ export default function Navbar() {
           BRAND
       ====================================== */}
 
-      <div className="navbar__brand">
-
-        <span className="navbar__logo">
-          KEYSTONE
+      <NavLink to="/dashboard" className="navbar__brand">
+        <KeystoneLogo size={34} />
+        <span className="navbar__brand-text">
+          <span className="navbar__logo">KEYSTONE</span>
+          <span className="navbar__subtitle">Field Service</span>
         </span>
-
-        <span className="navbar__subtitle">
-          Field Service
-        </span>
-
-      </div>
+      </NavLink>
 
 
       {/* =====================================
@@ -108,6 +109,8 @@ export default function Navbar() {
       ====================================== */}
 
       <nav className="navbar__links">
+
+        <div className="navbar__section-label">Workspace</div>
 
         <NavLink
           to="/dashboard"
@@ -117,7 +120,7 @@ export default function Navbar() {
               : "navlink"
           }
         >
-          Dashboard
+          <IconDashboard /><span>Dashboard</span>
         </NavLink>
 
 
@@ -131,7 +134,7 @@ export default function Navbar() {
                   : "navlink"
               }
             >
-              Customers
+              <IconBuilding /><span>Customers</span>
             </NavLink>
 
             <NavLink
@@ -142,7 +145,7 @@ export default function Navbar() {
                   : "navlink"
               }
             >
-              Sites
+              <IconPin /><span>Sites</span>
             </NavLink>
 
             <NavLink
@@ -153,7 +156,7 @@ export default function Navbar() {
                   : "navlink"
               }
             >
-              Work Orders
+              <IconClipboard /><span>Work Orders</span>
             </NavLink>
           </>
         )}
@@ -168,7 +171,7 @@ export default function Navbar() {
                 : "navlink"
             }
           >
-            Users
+            <IconUsers /><span>Users</span>
           </NavLink>
         )}
 
@@ -178,6 +181,11 @@ export default function Navbar() {
       {/* =====================================
           PROFILE AREA
       ====================================== */}
+
+      <div className="navbar__status">
+        <span className="pulse-dot" />
+        System online
+      </div>
 
       <div className="navbar__user">
 
@@ -191,6 +199,10 @@ export default function Navbar() {
           }
         >
 
+          <span className="navbar__avatar">
+            {initials(user.name)}
+          </span>
+
           <div className="navbar__user-info">
 
             <span className="navbar__user-name">
@@ -202,7 +214,7 @@ export default function Navbar() {
           </div>
 
           <span className="navbar__profile-arrow">
-            {profileOpen ? "▲" : "▼"}
+            {profileOpen ? "▼" : "▲"}
           </span>
 
         </button>

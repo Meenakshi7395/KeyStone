@@ -20,13 +20,8 @@ export default function App(){
    <Route path="/customers" element={<CustomersPage/>}/><Route path="/sites" element={<SitesPage/>}/><Route path="/work-orders" element={<WorkOrdersPage/>}/>
   </Route>
   <Route element={<ProtectedRoute allowedRoles={["MANAGER"]}/>}><Route path="/users" element={<UsersPage/>}/></Route>
+  <Route element={<ProtectedRoute/>}><Route path="/work-orders/:id" element={<WorkOrderDetailsPage/>}/></Route>
   <Route path="/" element={<Navigate to={isAuthenticated?"/dashboard":"/login"} replace/>}/><Route path="*" element={<NotFoundPage/>}/>
-  
-    <Route
-          path="/work-orders/:id"
-          element={<WorkOrderDetailsPage />}
-        />
-
 
  </Routes>;
 }

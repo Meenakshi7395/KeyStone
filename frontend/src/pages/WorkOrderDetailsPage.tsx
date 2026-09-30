@@ -1,3 +1,4 @@
+import { PriorityTag, StatusPill } from "../components/StatusPill";
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -406,7 +407,7 @@ export default function WorkOrderDetailsPage() {
     <div className="page-stack">
       <div className="page-header">
         <h1>
-          Work Order #{workOrder.id}
+          Work Order <span className="mono">#{workOrder.id}</span>
         </h1>
 
         <p className="page-header__subtitle">
@@ -462,14 +463,14 @@ export default function WorkOrderDetailsPage() {
           <div>
             <strong>Priority</strong>
             <div>
-              {workOrder.priority}
+              <PriorityTag priority={workOrder.priority} />
             </div>
           </div>
 
           <div>
             <strong>Status</strong>
             <div>
-              {workOrder.status}
+              <StatusPill status={workOrder.status} />
             </div>
           </div>
 

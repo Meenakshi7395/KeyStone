@@ -284,7 +284,7 @@ export default function SitesPage() {
         ) : sites.length === 0 ? (
           <p>No sites found.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="data-table">
 
             <table
               style={{
