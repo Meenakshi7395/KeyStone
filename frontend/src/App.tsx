@@ -9,6 +9,7 @@ import CustomersPage from "./pages/CustomersPage";
 import SitesPage from "./pages/SitesPage";
 import WorkOrdersPage from "./pages/WorkOrdersPage";
 import DashboardRouter from "./pages/dashboards/DashboardRouter";
+import WorkOrderDetailsPage from "./pages/WorkOrderDetailsPage";
 
 export default function App(){
  const {isAuthenticated}=useAuth();
@@ -20,5 +21,12 @@ export default function App(){
   </Route>
   <Route element={<ProtectedRoute allowedRoles={["MANAGER"]}/>}><Route path="/users" element={<UsersPage/>}/></Route>
   <Route path="/" element={<Navigate to={isAuthenticated?"/dashboard":"/login"} replace/>}/><Route path="*" element={<NotFoundPage/>}/>
+  
+    <Route
+          path="/work-orders/:id"
+          element={<WorkOrderDetailsPage />}
+        />
+
+
  </Routes>;
 }

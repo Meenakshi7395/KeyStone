@@ -1,85 +1,86 @@
-import axios, { AxiosError } from "axios";
-
-export const TOKEN_STORAGE_KEY = "token";
-
-// Docker Compose provides:
-// VITE_API_BASE_URL=http://localhost:8080
-//
-// API calls in the frontend already start with /api,
-// for example: /api/users/login
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+import axios from "axios";
+import type { ApiError } from "../types";
 
 export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: "http://localhost:8080",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Automatically attach JWT token to authenticated requests
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+// =========================================
+// ADD CURRENT JWT TO EVERY REQUEST
+// =========================================
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+apiClient.interceptors.request.use(
+  (config) => {
+    const token =
+      localStorage.getItem("keystone_token");
+
+    if (token) {
+      config.headers.Authorization =
+        `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// =========================================
+// HANDLE 401 / 403
+// =========================================
+
+apiClient.interceptors.response.use(
+  (response) => response,
+
+  (error) => {
+    if (
+      error.response?.status === 401 ||
+      error.response?.status === 403
+    ) {
+      console.error(
+        "Authentication/authorization error:",
+        error.response.status,
+        error.config?.url
+      );
+    }
+
+    return Promise.reject(error);
   }
+);
 
-  return config;
-});
+// =========================================
+// API ERROR MESSAGE
+// =========================================
 
-type BackendError = {
-  message?: string;
-  error?: string;
-  errors?: Record<string, string>;
-};
-
-// Convert backend errors into a readable message
 export function apiErrorMessage(
   error: unknown,
   fallback = "Something went wrong."
 ): string {
-  if (!axios.isAxiosError(error)) {
-    return fallback;
+  if (axios.isAxiosError(error)) {
+    const data =
+      error.response?.data as ApiError | undefined;
+
+    if (data?.message) {
+      return data.message;
+    }
+
+    if (data?.error) {
+      return data.error;
+    }
+
+    if (error.message) {
+      return error.message;
+    }
   }
 
-  const axiosError = error as AxiosError<unknown>;
-  const data = axiosError.response?.data;
-
-  // Backend returned plain text
-  if (typeof data === "string") {
-    return data.trim() || fallback;
-  }
-
-  // Backend returned JSON
-  if (data && typeof data === "object") {
-    const errorData = data as BackendError;
-
-    if (
-      typeof errorData.message === "string" &&
-      errorData.message.trim().length > 0
-    ) {
-      return errorData.message;
-    }
-
-    if (errorData.errors) {
-      const messages = Object.values(errorData.errors).filter(
-        (value): value is string =>
-          typeof value === "string" && value.trim().length > 0
-      );
-
-      if (messages.length > 0) {
-        return messages.join(", ");
-      }
-    }
-
-    if (
-      typeof errorData.error === "string" &&
-      errorData.error.trim().length > 0
-    ) {
-      return errorData.error;
-    }
+  if (error instanceof Error) {
+    return error.message;
   }
 
   return fallback;
 }
+
