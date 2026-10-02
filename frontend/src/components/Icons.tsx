@@ -126,3 +126,18 @@ export const IconLock = (p: IconProps) => (
     <path d="M8 11V8a4 4 0 0 1 8 0v3" />
   </Base>
 );
+
+export const IconBoard = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="4" width="5" height="16" rx="1.5" />
+    <rect x="10" y="4" width="5" height="10" rx="1.5" />
+    <rect x="17" y="4" width="4" height="13" rx="1.5" />
+  </Base>
+);
+
+export const IconBox = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+    <path d="m3 8 9 5 9-5M12 13v8" />
+  </Base>
+);

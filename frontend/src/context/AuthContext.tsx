@@ -7,14 +7,12 @@ import {
 
 import type {
   AuthResponse,
-  CreateUserRequest,
   LoginRequest,
   User,
 } from "../types";
 
 import {
   login as loginApi,
-  register as registerApi,
 } from "../api/auth";
 
 export interface SavedAccount {
@@ -28,12 +26,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
 
   login: (request: LoginRequest) => Promise<User>;
-  register: (request: CreateUserRequest) => Promise<User>;
   logout: () => void;
 
   savedAccounts: SavedAccount[];
   switchAccount: (account: SavedAccount) => void;
   removeSavedAccount: (userId: number) => void;
+  /** Replace the stored user (e.g. after a customer links an organisation). */
+  updateCurrentUser: (user: User) => void;
 }
 
 const AuthContext = createContext<
@@ -160,19 +159,6 @@ export function AuthProvider({
   }
 
   // =========================================
-  // REGISTER
-  // =========================================
-
-  async function register(
-    request: CreateUserRequest
-  ): Promise<User> {
-    const response =
-      await registerApi(request);
-
-    return response;
-  }
-
-  // =========================================
   // SWITCH ACCOUNT
   // =========================================
 
@@ -210,6 +196,21 @@ export function AuthProvider({
   }
 
   // =========================================
+  // UPDATE CURRENT USER
+  // =========================================
+
+  function updateCurrentUser(updated: User) {
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    setUser(updated);
+    if (token) {
+      saveAccounts([
+        { token, user: updated },
+        ...readAccounts().filter((a) => a.user.id !== updated.id),
+      ]);
+    }
+  }
+
+  // =========================================
   // LOGOUT
   // =========================================
 
@@ -233,12 +234,12 @@ export function AuthProvider({
       !!token && !!user,
 
     login,
-    register,
     logout,
 
     savedAccounts,
     switchAccount,
     removeSavedAccount,
+    updateCurrentUser,
   };
 
   return (

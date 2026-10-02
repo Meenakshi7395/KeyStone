@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { dashboardPathFor } from "./dashboards/DashboardRouter";
@@ -81,10 +81,8 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Sign in →"}
           </button>
 
-          <div className="auth-divider">or</div>
-
           <p className="auth-card__footer">
-            New to KEYSTONE? <Link to="/register">Create an account</Link>
+            Accounts are created by your Meridian manager. Need access? Contact Meridian.
           </p>
 
           <div className="auth-secure">

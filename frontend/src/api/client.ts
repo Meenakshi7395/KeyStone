@@ -1,8 +1,15 @@
 import axios from "axios";
 import type { ApiError } from "../types";
 
+// VITE_API_BASE_URL may be "http://host:8080" or "http://host:8080/api";
+// request paths already start with /api, so strip a trailing /api.
+const RAW_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8080";
+
+export const API_BASE_URL = RAW_BASE.replace(/\/+$/, "").replace(/\/api$/, "");
+
 export const apiClient = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -34,7 +41,24 @@ apiClient.interceptors.request.use(
 // =========================================
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Spring Data may serialise pages as { content, page: { size, number, totalElements, totalPages } }.
+    // Flatten that into the classic Page<T> shape the UI expects.
+    const d = response.data;
+    if (d && Array.isArray(d.content) && d.page && typeof d.page === "object" && d.totalElements === undefined) {
+      const pg = d.page;
+      response.data = {
+        content: d.content,
+        totalElements: pg.totalElements,
+        totalPages: pg.totalPages,
+        number: pg.number,
+        size: pg.size,
+        first: pg.number === 0,
+        last: pg.number + 1 >= pg.totalPages,
+      };
+    }
+    return response;
+  },
 
   (error) => {
     if (

@@ -74,7 +74,7 @@ export default function CustomersPage() {
 
     setForm({
       name: customer.name,
-      contactEmail: customer.contactEmail,
+      contactEmail: customer.contactEmail ?? "",
     });
 
     setFormError(null);

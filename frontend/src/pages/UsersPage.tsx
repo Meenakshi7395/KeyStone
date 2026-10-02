@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import * as usersApi from "../api/users";
+import * as customersApi from "../api/customers";
 import { apiErrorMessage } from "../api/client";
 import DataTable, { type Column } from "../components/DataTable";
 import RoleBadge from "../components/RoleBadge";
-import { ROLES, type CreateUserRequest, type Role, type User } from "../types";
+import { ROLES, type CreateUserRequest, type Customer, type Role, type User } from "../types";
 import { useAuth } from "../context/AuthContext";
 
 const emptyForm: CreateUserRequest = { name: "", email: "", password: "", role: "TECHNICIAN" };
@@ -19,6 +20,7 @@ export default function UsersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   async function loadUsers() {
     setLoading(true);
@@ -34,7 +36,13 @@ export default function UsersPage() {
 
   useEffect(() => {
     loadUsers();
+    customersApi
+      .listCustomers({ page: 0, size: 500 })
+      .then((p) => setCustomers([...p.content].sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(() => setCustomers([]));
   }, []);
+
+  const customerName = (id?: number | null) => customers.find((c) => c.id === id)?.name;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -45,9 +53,12 @@ export default function UsersPage() {
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
+    if (form.role === "CUSTOMER" && !form.customerId) {
+      return setFormError("Choose the organisation this customer belongs to.");
+    }
     setSubmitting(true);
     try {
-      await usersApi.createUser(form);
+      await usersApi.createUser({ ...form, customerId: form.role === "CUSTOMER" ? form.customerId : null });
       setForm(emptyForm);
       await loadUsers();
     } catch (err) {
@@ -74,6 +85,7 @@ export default function UsersPage() {
     { header: "Name", render: (u) => u.name },
     { header: "Email", render: (u) => u.email },
     { header: "Role", render: (u) => <RoleBadge role={u.role} /> },
+    { header: "Organisation", render: (u) => (u.role === "CUSTOMER" ? customerName(u.customerId) ?? <span className="muted-note">Not linked</span> : "—") },
     { header: "Joined", render: (u) => new Date(u.createdAt).toLocaleDateString() },
     {
       header: "",
@@ -96,9 +108,8 @@ export default function UsersPage() {
       <div className="page-header">
         <h1>Users</h1>
         <p className="page-header__subtitle">
-          All accounts across all four roles. GET/PUT/DELETE /api/users currently only requires being logged in
-          (any role) — the backend doesn't yet restrict user management to Manager server-side, so treat this page
-          as UI-level convenience only.
+          Every account across the four roles. Only managers can create, change or remove users — the API enforces
+          this server-side. For a customer login, first add the organisation and its sites on the Customers page, then pick it here.
         </p>
       </div>
 
@@ -133,6 +144,21 @@ export default function UsersPage() {
               </option>
             ))}
           </select>
+          {form.role === "CUSTOMER" && (
+            <select
+              required
+              value={form.customerId ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value ? Number(e.target.value) : null }))}
+              aria-label="Organisation"
+            >
+              <option value="">Select organisation…</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           <button className="btn btn--primary" type="submit" disabled={submitting}>
             {submitting ? "Adding…" : "Add user"}
           </button>

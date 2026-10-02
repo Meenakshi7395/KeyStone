@@ -4,6 +4,7 @@ import type { Customer, CustomerRequest, Page } from "../types";
 export interface ListCustomersParams {
   page?: number;
   size?: number;
+  search?: string;
 }
 
 export function listCustomers(params: ListCustomersParams = {}) {
@@ -12,6 +13,7 @@ export function listCustomers(params: ListCustomersParams = {}) {
       params: {
         page: params.page ?? 0,
         size: params.size ?? 10,
+        ...(params.search ? { search: params.search } : {}),
       },
     })
     .then((r) => r.data);
@@ -30,4 +32,8 @@ export function updateCustomer(
   return apiClient
     .put<Customer>(`/api/customers/${id}`, payload)
     .then((r) => r.data);
+}
+// GET /api/customers/{id}
+export function getCustomer(id: number) {
+  return apiClient.get<Customer>(`/api/customers/${id}`).then((r) => r.data);
 }

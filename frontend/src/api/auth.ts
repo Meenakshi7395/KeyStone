@@ -3,7 +3,6 @@ import { apiClient } from "./client";
 
 import type {
   AuthResponse,
-  CreateUserRequest,
   LoginRequest,
   User,
 } from "../types";
@@ -14,8 +13,7 @@ export function login(payload: LoginRequest) {
     .then((r) => r.data);
 }
 
-export function register(payload: CreateUserRequest) {
-  return apiClient
-    .post<User>("/api/auth/register", payload)
-    .then((r) => r.data);
+// GET /api/auth/me — fresh copy of the signed-in user
+export function me() {
+  return apiClient.get<User>("/api/auth/me").then((r) => r.data);
 }

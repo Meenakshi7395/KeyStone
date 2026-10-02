@@ -39,3 +39,7 @@ export function deleteUser(id: number) {
     .delete<void>(`/api/users/${id}`)
     .then(() => undefined);
 }
+// GET /api/users/technicians — dispatcher + manager
+export function listTechnicians() {
+  return apiClient.get<User[]>("/api/users/technicians").then((r) => r.data);
+}

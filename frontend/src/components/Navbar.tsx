@@ -3,12 +3,15 @@ import { NavLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import RoleBadge from "./RoleBadge";
+import NotificationBell from "./NotificationBell";
 import {
   IconBuilding,
   IconClipboard,
   IconDashboard,
   IconPin,
   IconUsers,
+  IconBoard,
+  IconBox,
   KeystoneLogo,
 } from "./Icons";
 
@@ -120,7 +123,7 @@ export default function Navbar() {
               : "navlink"
           }
         >
-          <IconDashboard /><span>Dashboard</span>
+          <IconDashboard /><span>{user.role === "TECHNICIAN" ? "My jobs" : user.role === "CUSTOMER" ? "My requests" : "Dashboard"}</span>
         </NavLink>
 
 
@@ -158,6 +161,28 @@ export default function Navbar() {
             >
               <IconClipboard /><span>Work Orders</span>
             </NavLink>
+
+            <NavLink
+              to="/board"
+              className={({ isActive }) =>
+                isActive
+                  ? "navlink navlink--active"
+                  : "navlink"
+              }
+            >
+              <IconBoard /><span>Board</span>
+            </NavLink>
+
+            <NavLink
+              to="/parts"
+              className={({ isActive }) =>
+                isActive
+                  ? "navlink navlink--active"
+                  : "navlink"
+              }
+            >
+              <IconBox /><span>Parts</span>
+            </NavLink>
           </>
         )}
 
@@ -181,6 +206,8 @@ export default function Navbar() {
       {/* =====================================
           PROFILE AREA
       ====================================== */}
+
+      <NotificationBell />
 
       <div className="navbar__status">
         <span className="pulse-dot" />
@@ -244,20 +271,7 @@ export default function Navbar() {
             </div>
 
 
-            {/* =================================
-                VIEW PROFILE
-            ================================== */}
-
-            <button
-              type="button"
-              className="navbar__profile-item"
-              onClick={() => {
-                setProfileOpen(false);
-                navigate("/profile");
-              }}
-            >
-              👤 View Profile
-            </button>
+            
 
 
             {/* =================================
