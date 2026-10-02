@@ -1,10 +1,12 @@
 package com.KeyStone.DeliveryService.DTO.Part;
 
-public record PartResponseDTO(
+import java.math.BigDecimal;
 
+public record PartResponseDTO(
         Integer id,
         String name,
-        Integer stockQuantity
-
+        Integer stockQuantity,
+        String sku,
+        BigDecimal unitCost
 ) {
 }

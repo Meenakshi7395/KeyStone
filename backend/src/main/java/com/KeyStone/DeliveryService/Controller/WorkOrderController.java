@@ -1,241 +1,188 @@
 package com.KeyStone.DeliveryService.Controller;
 
 import com.KeyStone.DeliveryService.DTO.Part.AddPartToWorkOrderRequestDTO;
-import com
-        .KeyStone.DeliveryService.DTO.Part.PartResponseDTO;
-import com.KeyStone.DeliveryService.DTO.WorkOrder.*;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.AssignTechnicianRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.LogWorkOrderTimeRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.UpdateWorkOrderStatusRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderFilter;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderHistoryResponseDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderPartResponseDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderRequestDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderResponseDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderTimeResponseDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderTotalsDTO;
+import com.KeyStone.DeliveryService.DTO.WorkOrder.WorkOrderUpdateRequestDTO;
 import com.KeyStone.DeliveryService.Entity.User;
+import com.KeyStone.DeliveryService.Enum.WorkOrderPriority;
+import com.KeyStone.DeliveryService.Enum.WorkOrderStatus;
 import com.KeyStone.DeliveryService.Service.WorkOrderService;
-
 import jakarta.validation.Valid;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Work orders. Controllers stay thin: role gates here, business rules and
+ * ownership checks in WorkOrderService.
+ */
 @RestController
 @RequestMapping("/api/work-orders")
 public class WorkOrderController {
 
     private final WorkOrderService workOrderService;
 
-    public WorkOrderController(
-            WorkOrderService workOrderService) {
-
+    public WorkOrderController(WorkOrderService workOrderService) {
         this.workOrderService = workOrderService;
     }
 
-    // =========================================
-    // CREATE WORK ORDER
-    // =========================================
+    // ---------- create / read ----------
 
     @PostMapping
     @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','CUSTOMER')")
-    public ResponseEntity<WorkOrderResponseDTO> create(
-            Authentication authentication,
-            @Valid @RequestBody WorkOrderRequestDTO request) {
-
-        User caller = (User) authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                workOrderService.create(caller, request)
-        );
+    public ResponseEntity<WorkOrderResponseDTO> create(@AuthenticationPrincipal User caller,
+                                                       @Valid @RequestBody WorkOrderRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(workOrderService.create(caller, request));
     }
 
-
-    // =========================================
-    // GET ALL WORK ORDERS
-    // =========================================
-
+    /**
+     * Filterable, paginated, role-scoped list.
+     * e.g. GET /api/work-orders?status=OPEN&status=ASSIGNED&priority=HIGH&overdue=true&q=hvac&page=0&size=20&sort=slaDueDate,asc
+     * Technicians only ever get their own jobs; customers only their organisation's.
+     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<WorkOrderResponseDTO>> list(
-            Pageable pageable) {
-
-        return ResponseEntity.ok(
-                workOrderService.list(pageable)
-        );
+            @AuthenticationPrincipal User caller,
+            @RequestParam(name = "status", required = false) List<WorkOrderStatus> statuses,
+            @RequestParam(required = false) WorkOrderPriority priority,
+            @RequestParam(required = false) Integer technicianId,
+            @RequestParam(required = false) Boolean unassigned,
+            @RequestParam(required = false) Integer siteId,
+            @RequestParam(required = false) Integer customerId,
+            @RequestParam(required = false) Boolean overdue,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        WorkOrderFilter filter = new WorkOrderFilter(statuses, priority, technicianId, unassigned,
+                siteId, customerId, overdue, q, from, to);
+        return ResponseEntity.ok(workOrderService.list(caller, filter, pageable));
     }
-
-
-    // =========================================
-    // GET WORK ORDERS BY TECHNICIAN
-    // IMPORTANT: This must appear before /{id}
-    // =========================================
 
     @GetMapping("/technician/{technicianId}")
     @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
     public ResponseEntity<Page<WorkOrderResponseDTO>> getByTechnician(
-            Authentication authentication,
+            @AuthenticationPrincipal User caller,
             @PathVariable Integer technicianId,
-            Pageable pageable) {
-
-        User caller = (User) authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                workOrderService.getByTechnician(
-                        caller,
-                        technicianId,
-                        pageable
-                )
-        );
+            @PageableDefault(size = 20, sort = "slaDueDate") Pageable pageable) {
+        return ResponseEntity.ok(workOrderService.getByTechnician(caller, technicianId, pageable));
     }
-
-
-    // =========================================
-    // GET WORK ORDERS BY CUSTOMER
-    // =========================================
 
     @GetMapping("/customer/{customerId}")
     @PreAuthorize("hasAnyRole('CUSTOMER','DISPATCHER','MANAGER')")
     public ResponseEntity<Page<WorkOrderResponseDTO>> getByCustomer(
-            Authentication authentication,
+            @AuthenticationPrincipal User caller,
             @PathVariable Integer customerId,
-            Pageable pageable) {
-
-        User caller = (User) authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                workOrderService.getByCustomer(
-                        caller,
-                        customerId,
-                        pageable
-                )
-        );
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(workOrderService.getByCustomer(caller, customerId, pageable));
     }
-
-
-    // =========================================
-    // GET WORK ORDER BY ID
-    // =========================================
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN','CUSTOMER')")
-    public ResponseEntity<WorkOrderResponseDTO> getById(
-            Authentication authentication,
-            @PathVariable Integer id) {
-
-        User caller = (User) authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                workOrderService.getById(caller, id)
-        );
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<WorkOrderResponseDTO> getById(@AuthenticationPrincipal User caller, @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.getById(caller, id));
     }
 
+    // ---------- edit ----------
 
-    // =========================================
-    // ASSIGN TECHNICIAN
-    // =========================================
-
-    @PutMapping("/{id}/assign")
+    @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
-    public ResponseEntity<WorkOrderResponseDTO> assignTechnician(
-            @PathVariable Integer id,
-            @Valid @RequestBody AssignTechnicianRequestDTO request) {
-
-        return ResponseEntity.ok(
-                workOrderService.assignTechnician(id, request)
-        );
+    public ResponseEntity<WorkOrderResponseDTO> update(@AuthenticationPrincipal User caller,
+                                                       @PathVariable Integer id,
+                                                       @Valid @RequestBody WorkOrderUpdateRequestDTO request) {
+        return ResponseEntity.ok(workOrderService.update(caller, id, request));
     }
 
+    // ---------- dispatch & lifecycle ----------
 
-    // =========================================
-    // UPDATE STATUS
-    // =========================================
+    /** POST (brief) or PUT (older clients) /api/work-orders/{id}/assign */
+    @RequestMapping(value = "/{id}/assign", method = {RequestMethod.POST, RequestMethod.PUT})
+    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER')")
+    public ResponseEntity<WorkOrderResponseDTO> assign(@AuthenticationPrincipal User caller,
+                                                       @PathVariable Integer id,
+                                                       @Valid @RequestBody AssignTechnicianRequestDTO request) {
+        return ResponseEntity.ok(workOrderService.assignTechnician(caller, id, request));
+    }
 
-    @PutMapping("/{id}/status")
+    /** POST (brief) or PUT /api/work-orders/{id}/status — 409 when the move isn't on the lifecycle diagram. */
+    @RequestMapping(value = "/{id}/status", method = {RequestMethod.POST, RequestMethod.PUT})
     @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
-    public ResponseEntity<WorkOrderResponseDTO> updateStatus(
-            Authentication authentication,
-            @PathVariable Integer id,
-            @Valid @RequestBody UpdateWorkOrderStatusRequestDTO request) {
-
-        User caller = (User) authentication.getPrincipal();
-
-        return ResponseEntity.ok(
-                workOrderService.updateStatus(caller, id, request)
-        );
+    public ResponseEntity<WorkOrderResponseDTO> updateStatus(@AuthenticationPrincipal User caller,
+                                                             @PathVariable Integer id,
+                                                             @Valid @RequestBody UpdateWorkOrderStatusRequestDTO request) {
+        return ResponseEntity.ok(workOrderService.updateStatus(caller, id, request));
     }
 
-
-    // =========================================
-    // GET WORK ORDER HISTORY
-    // =========================================
+    /** Statuses the caller may move this job to right now. */
+    @GetMapping("/{id}/transitions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<WorkOrderStatus>> transitions(@AuthenticationPrincipal User caller, @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.allowedNextStatuses(caller, id));
+    }
 
     @GetMapping("/{id}/history")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
-    public ResponseEntity<List<WorkOrderHistoryResponseDTO>> getHistory(
-            @PathVariable Integer id) {
-
-        return ResponseEntity.ok(
-                workOrderService.getHistory(id)
-        );
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<WorkOrderHistoryResponseDTO>> history(@AuthenticationPrincipal User caller,
+                                                                     @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.getHistory(caller, id));
     }
 
-
-    // =========================================
-    // ADD / USE PART
-    // =========================================
+    // ---------- parts & time ----------
 
     @PostMapping("/{id}/parts")
     @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
-    public ResponseEntity<Void> addPart(
-            @PathVariable Integer id,
-            @Valid @RequestBody AddPartToWorkOrderRequestDTO request) {
-
-        workOrderService.addPart(id, request);
-
-        return ResponseEntity.ok().build();
+    public ResponseEntity<WorkOrderPartResponseDTO> addPart(@AuthenticationPrincipal User caller,
+                                                            @PathVariable Integer id,
+                                                            @Valid @RequestBody AddPartToWorkOrderRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(workOrderService.addPart(caller, id, request));
     }
-
-
-    // =========================================
-    // GET PARTS USED IN WORK ORDER
-    // =========================================
 
     @GetMapping("/{id}/parts")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
-    public ResponseEntity<List<PartResponseDTO>> getParts(
-            @PathVariable Integer id) {
-
-        return ResponseEntity.ok(
-                workOrderService.getParts(id)
-        );
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<List<WorkOrderPartResponseDTO>> getParts(@AuthenticationPrincipal User caller,
+                                                                   @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.getParts(caller, id));
     }
-
-
-    // =========================================
-    // LOG TIME
-    // =========================================
 
     @PostMapping("/{id}/time")
     @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
-    public ResponseEntity<WorkOrderTimeResponseDTO> logTime(
-            @PathVariable Integer id,
-            @Valid @RequestBody LogWorkOrderTimeRequestDTO request) {
-
-        return ResponseEntity.ok(
-                workOrderService.logTime(id, request)
-        );
+    public ResponseEntity<WorkOrderTimeResponseDTO> logTime(@AuthenticationPrincipal User caller,
+                                                            @PathVariable Integer id,
+                                                            @Valid @RequestBody LogWorkOrderTimeRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(workOrderService.logTime(caller, id, request));
     }
 
-
-    // =========================================
-    // GET TIME LOGS
-    // =========================================
-
     @GetMapping("/{id}/time")
-    @PreAuthorize("hasAnyRole('DISPATCHER','MANAGER','TECHNICIAN')")
-    public ResponseEntity<List<WorkOrderTimeResponseDTO>> getTimeLogs(
-            @PathVariable Integer id) {
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<List<WorkOrderTimeResponseDTO>> getTime(@AuthenticationPrincipal User caller,
+                                                                  @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.getTimeLogs(caller, id));
+    }
 
-        return ResponseEntity.ok(
-                workOrderService.getTimeLogs(id)
-        );
+    /** Parts cost and labour minutes rolled up on the job (F6.3). */
+    @GetMapping("/{id}/totals")
+    @PreAuthorize("hasAnyRole('TECHNICIAN','DISPATCHER','MANAGER')")
+    public ResponseEntity<WorkOrderTotalsDTO> totals(@AuthenticationPrincipal User caller, @PathVariable Integer id) {
+        return ResponseEntity.ok(workOrderService.getTotals(caller, id));
     }
 }

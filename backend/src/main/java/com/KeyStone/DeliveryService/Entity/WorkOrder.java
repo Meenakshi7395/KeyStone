@@ -18,6 +18,11 @@ public class WorkOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // Human-readable code, e.g. WO-0042 (set right after the first insert).
+    // Nullable so ddl-auto=update can add it to an existing table.
+    @Column(unique = true, length = 20)
+    private String code;
+
     @Column(nullable = false)
     private String title;
 
@@ -34,24 +39,29 @@ public class WorkOrder {
     @JoinColumn(name = "site_id", nullable = false)
     private Site site;
 
-    // Technician assigned to the job
-    // This can be null when the work order is first created
+    // Technician assigned to the job (null until assigned)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "technician_id")
     private User technician;
 
-    // Priority of the work order
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private WorkOrderPriority priority;
 
-    // Current status of the work order
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private WorkOrderStatus status;
 
     // SLA deadline for completing the work order
     private Instant slaDueDate;
+
+    // Set by the SLA monitor so each alert is only sent once.
+    private Instant slaRiskNotifiedAt;
+    private Instant slaBreachNotifiedAt;
+
+    // Lifecycle timestamps used for SLA compliance and reporting.
+    private Instant completedAt;
+    private Instant closedAt;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -60,14 +70,11 @@ public class WorkOrder {
 
     @PrePersist
     public void prePersist() {
-
         createdAt = Instant.now();
         updatedAt = Instant.now();
-
         if (status == null) {
             status = WorkOrderStatus.OPEN;
         }
-
         if (priority == null) {
             priority = WorkOrderPriority.MEDIUM;
         }

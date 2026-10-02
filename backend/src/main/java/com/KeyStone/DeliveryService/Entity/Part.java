@@ -1,9 +1,15 @@
 package com.KeyStone.DeliveryService.Entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "parts")
+@Getter
+@Setter
 public class Part {
 
     @Id
@@ -13,44 +19,20 @@ public class Part {
     @Column(nullable = false)
     private String name;
 
+    @Column(length = 64)
+    private String sku;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal unitCost;
+
     @Column(nullable = false)
     private Integer stockQuantity;
 
     public Part() {
     }
 
-    public Part(
-            String name,
-            Integer stockQuantity) {
-
+    public Part(String name, Integer stockQuantity) {
         this.name = name;
-        this.stockQuantity = stockQuantity;
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-
-    public void setStockQuantity(
-            Integer stockQuantity) {
-
         this.stockQuantity = stockQuantity;
     }
 }
-

@@ -159,11 +159,7 @@ public class DataSeeder implements ApplicationRunner {
         user("Sneha Reddy", "sneha@sunrisetechpark.com", Role.CUSTOMER, sunrise);
         user("Farhan Qureshi", "farhan@lotusmedical.com", Role.CUSTOMER, lotus);
 
-        if (workOrderRepository.count() > 0) {
-            log.info("Seed: users/customers ensured; work orders already present, skipping sample jobs");
-            return;
-        }
-
+        // Sites are ensured every start (idempotent), so every demo customer has somewhere to raise requests.
         Site towerA = site(harbour, "Tower A", "12 Harbour Road, Mumbai");
         Site towerB = site(harbour, "Tower B", "14 Harbour Road, Mumbai");
         Site mainBlock = site(westgate, "Main Block", "1 Westgate Avenue, Pune");
@@ -171,6 +167,12 @@ public class DataSeeder implements ApplicationRunner {
         Site block3 = site(sunrise, "Block 3", "Sunrise Tech Park, Whitefield, Bengaluru");
         Site dataCentre = site(sunrise, "Data Centre", "Sunrise Tech Park, Whitefield, Bengaluru");
         Site opd = site(lotus, "OPD Wing", "Lotus Medical Centre, Sector 18, Noida");
+
+        if (workOrderRepository.count() > 0) {
+            log.info("Seed: users/customers ensured; work orders already present, skipping sample jobs");
+            return;
+        }
+
 
         // --- Parts ---
         Part mcb = part("20A MCB breaker", "EL-MCB-20A", "450.00", 40);
@@ -297,6 +299,11 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private Site site(Customer customer, String name, String address) {
+        for (Site existing : siteRepository.findByCustomerId(customer.getId())) {
+            if (existing.getName().equalsIgnoreCase(name)) {
+                return existing;
+            }
+        }
         Site s = new Site();
         s.setCustomer(customer);
         s.setName(name);
