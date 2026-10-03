@@ -59,7 +59,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
-              placeholder="you@meridian.com"
+              placeholder="your email"
             />
           </label>
 
@@ -81,13 +81,13 @@ export default function LoginPage() {
             {submitting ? "Signing in…" : "Sign in →"}
           </button>
 
-          <p className="auth-card__footer">
-            Accounts are created by your Meridian manager. Need access? Contact Meridian.
-          </p>
+          {/* <p className="auth-card__footer">
+            Accounts are created by your Meridian manager. Need access? Contact.
+          </p> */}
 
-          <div className="auth-secure">
+          {/* <div className="auth-secure">
             <IconLock width={13} height={13} /> Secured with signed JWT · role-based access
-          </div>
+          </div> */}
         </form>
       </div>
     </div>

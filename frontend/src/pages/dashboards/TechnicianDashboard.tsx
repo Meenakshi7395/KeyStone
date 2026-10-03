@@ -11,10 +11,6 @@ import { allowedTransitions, isFinished, isOverdue } from "../../lib/workOrders"
 
 type Tab = "active" | "done";
 
-/**
- * Technician field view (F5): only the jobs assigned to me, with
- * start / hold / resume / complete buttons. Built mobile-first.
- */
 export default function TechnicianDashboard() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<WorkOrder[]>([]);

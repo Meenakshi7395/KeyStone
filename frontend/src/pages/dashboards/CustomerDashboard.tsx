@@ -12,20 +12,11 @@ import { useAuth } from "../../context/AuthContext";
 import type { Customer, Site, WorkOrder, WorkOrderPriority } from "../../types";
 import { formatDateTime, isFinished, woCode } from "../../lib/workOrders";
 
-/**
- * Customer portal (F9). Meridian staff create the customer, its sites and the
- * customer login (F2); the customer raises requests for its own sites and
- * follows their status and history.
- */
 export default function CustomerDashboard() {
   const { user } = useAuth();
   if (!user) return null;
   return user.customerId ? <CustomerPortal customerId={user.customerId} /> : <NotLinked />;
 }
-
-// ---------------------------------------------------------------------------
-// Not linked yet — a manager links customer logins to their organisation (F2)
-// ---------------------------------------------------------------------------
 
 function NotLinked() {
   const { user } = useAuth();
@@ -38,16 +29,13 @@ function NotLinked() {
       <section className="panel link-panel">
         <EmptyState
           title="Waiting for Meridian"
-          description="Your Meridian manager links customer accounts to their organisation and its sites. Once that's done, sign out and sign in again to raise requests."
+          description="Your manager links customer accounts to their organisation and its sites. Once that's done, sign out and sign in again to raise requests."
         />
       </section>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Step 2 — the portal itself
-// ---------------------------------------------------------------------------
 
 const emptyRequest = { title: "", description: "", siteId: 0, priority: "MEDIUM" as WorkOrderPriority };
 
@@ -171,7 +159,7 @@ function CustomerPortal({ customerId }: { customerId: number }) {
                 <input
                   required
                   maxLength={120}
-                  placeholder="e.g. Air conditioning not cooling on level 4"
+                  placeholder="e.g. Your problem "
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 />
@@ -181,7 +169,7 @@ function CustomerPortal({ customerId }: { customerId: number }) {
                 <textarea
                   rows={3}
                   maxLength={2000}
-                  placeholder="Where exactly, since when, anything the technician should know…"
+                  placeholder="Where exactly, technician should know…"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />

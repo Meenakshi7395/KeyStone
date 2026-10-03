@@ -20,11 +20,6 @@ function isoDaysAgo(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-/**
- * Manager dashboard (F8). Figures come from GET /api/reports/summary and the
- * lists from GET /api/work-orders — both with the same filters, so every
- * number on the page agrees with the filter bar.
- */
 export default function ManagerDashboard() {
   const { user } = useAuth();
   const [summary, setSummary] = useState<ReportSummary | null>(null);

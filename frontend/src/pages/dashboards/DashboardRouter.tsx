@@ -5,10 +5,6 @@ import DispatcherDashboard from "./DispatcherDashboard";
 import TechnicianDashboard from "./TechnicianDashboard";
 import CustomerDashboard from "./CustomerDashboard";
 
-// All four roles currently land on the same /dashboard route; this just
-// picks which view to render. Kept as one path (rather than
-// /dashboard/manager, /dashboard/technician, …) since nothing outside this
-// component needs to link to a role-specific dashboard URL yet.
 export function dashboardPathFor(_role: Role): string {
   return "/dashboard";
 }

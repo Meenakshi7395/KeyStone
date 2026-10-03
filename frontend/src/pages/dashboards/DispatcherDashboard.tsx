@@ -12,7 +12,6 @@ import { isAtRisk, isFinished, isOverdue, woCode } from "../../lib/workOrders";
 
 const RANK = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 } as const;
 
-/** Dispatcher home: what needs assigning and what's slipping. */
 export default function DispatcherDashboard() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<WorkOrder[]>([]);
